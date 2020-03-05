@@ -1,0 +1,118 @@
+---
+title: "BI612 H4"
+author: "Natasha Hannan"
+output: html_document
+---
+
+```{r}
+library(readr)
+titanic <- read_csv("~/BI612-homework/titanic.csv")
+```
+
+#2 
+1- Gender - females will likely have a greater chance of survival
+2- Age - a younger person will have a greater chance of survival due to the fact that they would be first priority 
+3- Class - People in a lower class will likely survive more then higher classes
+4- Parch (parents/children on board) - people will more family members on board are likely to survive compared to those without
+5- Fare - people that paid more for their ticket liekly have more money and therefore are more likely to survive. 
+
+**how should this be worded? how much detail?
+
+#3 
+```{r}
+library(vcd)
+mosaic(survived~Gender, data=titanic)
+library(vcd)
+mosaic(survived~pclass, data=titanic)
+library(popbio)
+titanic.nona<-na.omit(data.frame("age"=titanic$age,"survived"=titanic$survived))
+logi.hist.plot(titanic.nona$age,titanic.nona$survived,boxp=FALSE,type="hist",col="gray", xlabel="Age")
+library(popbio)
+titanic.nona<-na.omit(data.frame("fare"=titanic$fare,"survived"=titanic$survived))
+logi.hist.plot(titanic.nona$fare,titanic.nona$survived,boxp=FALSE,type="hist",col="gray", xlabel="Fare")
+library(popbio)
+titanic.nona<-na.omit(data.frame("parch"=titanic$parch,"survived"=titanic$survived))
+logi.hist.plot(titanic.nona$parch,titanic.nona$survived,boxp=FALSE,type="hist",col="gray", xlabel="Number of parents/children on board")
+```
+
+#4 
+```{r}
+library(bestglm)
+my.variables=data.frame("gender"=titanic$Gender,"class"=titanic$pclass,"age"=titanic$age,"fare"=titanic$fare,"parch"=titanic$parch,"survived"=titanic$survived)
+my.variables.nona=na.omit(my.variables)
+bestglm(my.variables.nona,IC="AIC",family=binomial)
+```
+
+#5
+```{r}
+model1<-glm(survived~gender+class+age, data=my.variables.nona)
+summary.lm(model1)
+```
+#6
+```{r}
+univariate.gender=glm(survived~gender, data=my.variables.nona, family=binomial(link="logit"))
+summary(univariate.gender)
+univariate.age=glm(survived~age, data=my.variables.nona, family=binomial(link="logit"))
+summary(univariate.age)
+univariate.class=glm(survived~class, data=my.variables.nona, family=binomial(link="logit"))
+summary(univariate.class)
+univariate.fare=glm(survived~fare, data=my.variables.nona, family=binomial(link="logit"))
+summary(univariate.fare)
+univariate.parch=glm(survived~parch, data=my.variables.nona, family=binomial(link="logit"))
+summary(univariate.parch)
+```
+
+```{r}
+model2<-glm(survived~gender+age+class+parch, data=my.variables.nona, family=binomial(link="logit"))
+summary(model2)
+```
+
+
+```{r}
+model3<-glm(survived~gender+age+class, data=my.variables.nona, family=binomial(link="logit"))
+summary(model3)
+```
+```{r}
+library(lmtest)
+lrtest(model1,model3)
+```
+
+#7 loglikelihood more negative is better
+
+#8
+```{r}
+library(effects)
+plot(allEffects(model1))
+```
+Yes, all of the effects were in the expected direction. Females, people in a lower class and younger people had a greater change of survival.
+
+#9
+```{r}
+residualPlots(model1)
+outlierTest(model1)
+influenceIndexPlot(model1,id.n=3)
+influencePlot(model1)
+vif(model1)
+print(model1)
+```
+
+#10 ANSWER QUESTION
+
+#11
+```{r}
+library(caret)
+ctrl <- trainControl(method = "repeatedcv", number = 10, savePredictions = TRUE)
+my.variables.nona$survived=as.factor(my.variables.nona$survived)
+train(survived~gender+age+class,data=my.variables.nona, method="glm", family=binomial(link='logit'),trControl = ctrl, tuneLength = 5)
+```
+
+#12 ANSWER QUESTION
+
+
+#13
+```{r}
+predictions<-predict(model1, newdata=my.variables.nona,type="response")
+confusionMatrix(data=as.factor(as.numeric(predictions>0.5)),reference=my.variables.nona$survived)
+```
+
+#14 ANSWER QUESTION
